@@ -1,0 +1,13 @@
+*~
+__pycache__/
+*.egg-info
+data/
+instance/
+.*node_modules/
+logs/
+*__pycache__*
+*.ipynb_checkpoints*
+trajs/
+models/
+.idea/
+.mypy_cache/
