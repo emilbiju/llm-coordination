@@ -4,7 +4,7 @@ import gym
 
 import torch as th
 
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, TD3
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.monitor import Monitor
 
@@ -26,12 +26,14 @@ from pantheonrl.envs.liargym.liar import LiarEnv, LiarDefaultAgent
 
 from overcookedgym.overcooked_utils import LAYOUT_LIST
 
+from pantheonrl.common.overcooked_recorder import OvercookedRecorder
+
 ENV_LIST = ['RPS-v0', 'BlockEnv-v0', 'BlockEnv-v1', 'LiarsDice-v0',
             'OvercookedMultiEnv-v0']
 
 ADAP_TYPES = ['ADAP', 'ADAP_MULT']
-EGO_LIST = ['PPO', 'ModularAlgorithm', 'LOAD'] + ADAP_TYPES
-PARTNER_LIST = ['PPO', 'DEFAULT', 'FIXED'] + ADAP_TYPES
+EGO_LIST = ['PPO', 'ModularAlgorithm', 'LOAD', 'TD3'] + ADAP_TYPES
+PARTNER_LIST = ['PPO', 'DEFAULT', 'FIXED', 'TD3'] + ADAP_TYPES
 
 
 class EnvException(Exception):
@@ -99,7 +101,10 @@ def generate_env(args):
         altenv = frame_wrap(altenv, args.framestack)
 
     if args.record is not None:
-        env = recorder_wrap(env)
+        if "Overcooked" in args.env:
+            env = OvercookedRecorder(env)
+        else:
+            env = recorder_wrap(env)
 
     return env, altenv
 
@@ -128,6 +133,8 @@ def generate_ego(env, args):
         return ADAP(policy=AdapPolicy, **kwargs)
     elif args.ego == 'ADAP_MULT':
         return ADAP(policy=AdapPolicyMult, **kwargs)
+    elif args.ego == 'TD3':
+        return TD3(policy='MlpPolicy', **kwargs)
     elif args.ego == 'ModularAlgorithm':
         policy_kwargs = dict(num_partners=len(args.alt))
         return ModularAlgorithm(policy=ModularPolicy,
@@ -149,6 +156,8 @@ def gen_load(config, policy_type, location):
         agent = PPO.load(location)
     elif policy_type == 'ModularAlgorithm':
         agent = ModularAlgorithm.load(location)
+    elif policy_type == 'TD3':
+        agent = TD3.load(location)
     elif policy_type == 'BC':
         agent = BCShell(reconstruct_policy(location))
     else:
@@ -201,7 +210,8 @@ def gen_partner(type, config, altenv, ego, args):
 
     if type == 'PPO':
         return OnPolicyAgent(PPO(policy='MlpPolicy', **config), **agentarg)
-
+    elif type == 'TD3':
+        return OnPolicyAgent(TD3(policy='MlpPolicy', **config), **agentarg)
     if type == 'ADAP':
         alt = ADAP(policy=AdapPolicy, **config)
     elif type == 'ADAP_MULT':
@@ -413,8 +423,11 @@ if __name__ == '__main__':
     ego.learn(**learn_config)
 
     if args.record:
-        transition = env.get_transitions()
-        transition.write_transition(args.record)
+        if "Overcooked" in args.env:
+            env.write_trajectory(args.record)
+        else:
+            transition = env.get_transitions()
+            transition.write_transition(args.record)
 
     if args.ego_save:
         ego.save(args.ego_save)
