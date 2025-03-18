@@ -1,5 +1,5 @@
 <h1>
-  <img src="assets/Coagents.png" alt="Logo" style="vertical-align:middle" width="50"> Reinforcement Learning for Multi-Agent LLM based Coordination
+  <alt="Logo" style="vertical-align:middle" width="50"> Reinforcement Learning for Multi-Agent LLM based Coordination
 </h1>
 
 Authors: Emil Biju, Herumb Shandilya, Nikil Ravi
